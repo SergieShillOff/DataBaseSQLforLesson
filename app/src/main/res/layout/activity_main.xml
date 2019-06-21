@@ -116,6 +116,30 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Удалить все" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="SQLite" />
+
+                <Button
+                    android:id="@+id/btnSaveAllSQLite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Сохранить в БД" />
+
+                <Button
+                    android:id="@+id/btnSelectAllSQLite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Показать все" />
+
+                <Button
+                    android:id="@+id/btnDeleteAllSQLite"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Удалить все" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

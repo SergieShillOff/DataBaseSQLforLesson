@@ -15,7 +15,7 @@ public class MainApp extends Application {
     public void onCreate() {
         super.onCreate();
 
-        SugarContext.init(this);
+//        SugarContext.init(this);
 
         Realm.init(this);
 
