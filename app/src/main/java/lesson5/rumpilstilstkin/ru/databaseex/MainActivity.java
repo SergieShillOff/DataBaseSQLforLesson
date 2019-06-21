@@ -2,7 +2,11 @@ package lesson5.rumpilstilstkin.ru.databaseex;
 
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -51,14 +55,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Button btnSaveAllRoom;
     Button btnSelectAllRoom;
     Button btnDeleteAllRoom;
+    Button btnSaveAllSQLite;
+    Button btnSelectAllSQLite;
+    Button btnDeleteAllSQLite;
 
     List<Model> modelList = new ArrayList<>();
     Realm realm;
+    DatabaseHelper helper;
+
+    String[] columns = {"Login", "UserId", "AvatarURL"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        SugarContext.init(this);
         initViews();
     }
 
@@ -81,6 +92,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnSaveAllRoom = findViewById(R.id.btnSaveAllRoom);
         btnSelectAllRoom = findViewById(R.id.btnSelectAllRoom);
         btnDeleteAllRoom = findViewById(R.id.btnDeleteAllRoom);
+        btnSaveAllSQLite = findViewById(R.id.btnSaveAllSQLite);
+        btnSelectAllSQLite = findViewById(R.id.btnSelectAllSQLite);
+        btnDeleteAllSQLite = findViewById(R.id.btnDeleteAllSQLite);
         btnLoad.setOnClickListener(this);
         btnSaveAllSugar.setOnClickListener(this);
         btnSelectAllSugar.setOnClickListener(this);
@@ -91,6 +105,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnSaveAllRoom.setOnClickListener(this);
         btnSelectAllRoom.setOnClickListener(this);
         btnDeleteAllRoom.setOnClickListener(this);
+        btnSaveAllSQLite.setOnClickListener(this);
+        btnSelectAllSQLite.setOnClickListener(this);
+        btnDeleteAllSQLite.setOnClickListener(this);
     }
 
     @Override
@@ -126,6 +143,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btnDeleteAllRoom:
                 execute(this::deleteAllRoom);
                 break;
+            case R.id.btnSaveAllSQLite:
+                execute(this::saveSQLite);
+                break;
+            case R.id.btnSelectAllSQLite:
+                execute(this::getAllSQLite);
+                break;
+            case R.id.btnDeleteAllSQLite:
+                execute(this::deleteAllSQLite);
+                break;
         }
     }
 
@@ -143,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onSuccess(@NonNull Bundle bundle) {
                 progressBar.setVisibility(View.GONE);
                 mInfoTextView.append("количество = " + bundle.getInt(EXT_COUNT) +
-                                     "\n милисекунд = " + bundle.getLong(EXT_TIME));
+                        "\n милисекунд = " + bundle.getLong(EXT_TIME));
             }
 
             @Override
@@ -169,8 +195,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     .build();
             Call<List<Model>> call = retrofit.create(Endpoints.class).loadUsers();
             downloadOneUrl(call);
-        }
-        else {
+        } else {
             Toast.makeText(this, "Подключите интернет", Toast.LENGTH_SHORT).show();
         }
     }
@@ -184,19 +209,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     if (response.body() != null) {
                         Model curModel = null;
                         mInfoTextView.append("\n Size = " + response.body().size() +
-                                             "\n-----------------");
+                                "\n-----------------");
                         for (int i = 0; i < response.body().size(); i++) {
                             curModel = response.body().get(i);
                             modelList.add(curModel);
                             mInfoTextView.append(
                                     "\nLogin = " + curModel.getLogin() +
-                                    "\nId = " + curModel.getUserId() +
-                                    "\nURI = " + curModel.getAvatar() +
-                                    "\n-----------------");
+                                            "\nId = " + curModel.getUserId() +
+                                            "\nURI = " + curModel.getAvatar() +
+                                            "\n-----------------");
                         }
                     }
-                }
-                else {
+                } else {
                     System.out.println("onResponse error: " + response.code());
                     mInfoTextView.setText("onResponse error: " + response.code());
                 }
@@ -267,8 +291,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     realmModel.setUserID(curItem.getUserId());
                     realmModel.setLogin(curItem.getLogin());
                     realmModel.setAvatarUrl(curItem.getAvatar());
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     realm1.cancelTransaction();
                     realm1.close();
                     throw e;
@@ -350,5 +373,69 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         bundle.putInt(EXT_COUNT, size);
         bundle.putLong(EXT_TIME, second.getTime() - first.getTime());
         return bundle;
+    }
+
+    private Bundle saveSQLite() {
+        Date first = new Date();
+        checkInstanceOfHelper();
+        for (Model curItem : modelList) {
+            ContentValues values = new ContentValues();
+            values.put("Login", curItem.getLogin());
+            values.put("UserId", curItem.getUserId());
+            values.put("AvatarURL", curItem.getAvatar());
+            helper.getWritableDatabase().insert("demo", null, values);
+        }
+        Date second = new Date();
+        Bundle bundle = new Bundle();
+        bundle.putInt(EXT_COUNT, modelList.size());
+        bundle.putLong(EXT_TIME, second.getTime() - first.getTime());
+        return bundle;
+    }
+
+    private Bundle getAllSQLite() {
+        Date first = new Date();
+        checkInstanceOfHelper();
+        List<SQLiteModel> tempList = new ArrayList<>();
+        SQLiteDatabase database = helper.getReadableDatabase();
+        Cursor cursor = database.query("demo", columns, null, null, null, null, null);
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            SQLiteModel sqLiteModel = new SQLiteModel();
+            sqLiteModel.setLogin(cursor.getString(0));
+            sqLiteModel.setUserId(cursor.getString(1));
+            sqLiteModel.setAvatarUrl(cursor.getString(2));
+            tempList.add(sqLiteModel);
+            cursor.moveToNext();
+        }
+        cursor.close();
+        Date second = new Date();
+        Bundle bundle = new Bundle();
+        bundle.putInt(EXT_COUNT, tempList.size());
+        bundle.putLong(EXT_TIME, second.getTime() - first.getTime());
+        return bundle;
+    }
+
+    private Bundle deleteAllSQLite() {
+        Date first = new Date();
+        checkInstanceOfHelper();
+        SQLiteDatabase database = helper.getWritableDatabase();
+        int size = database.query("demo", columns, null, null, null, null, null).getCount();
+        database.execSQL("DELETE FROM demo");
+        Date second = new Date();
+        Bundle bundle = new Bundle();
+        bundle.putInt(EXT_COUNT, size);
+        bundle.putLong(EXT_TIME, second.getTime() - first.getTime());
+        return bundle;
+    }
+
+    private void checkInstanceOfHelper() {
+        if (helper == null) {
+            helper = new DatabaseHelper(this);
+            try {
+                helper.getWritableDatabase();
+            } catch (SQLException e) {
+                helper.onCreate(SQLiteDatabase.openOrCreateDatabase("SQLite demo.db", null));
+            }
+        }
     }
 }
